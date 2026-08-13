@@ -30,6 +30,8 @@ describe("loadConfig", () => {
   it("returns defaults when no config exists yet", () => {
     const config = loadConfig();
     expect(config.policy).toBe("sticky");
+    expect(config.scrollSteps).toBe(1);
+    expect(config.dialModeOrder).toEqual(["workspaces", "agents", "scroll"]);
     expect(config.bindings.buttons.ACT06).toEqual({
       kind: "preset",
       preset: "popup",
@@ -37,9 +39,18 @@ describe("loadConfig", () => {
   });
 
   it("reads a valid config", () => {
-    write(JSON.stringify({ policy: "mirror", bindings: { ACT10: "zoom" } }));
+    write(
+      JSON.stringify({
+        policy: "mirror",
+        scroll_steps: 3,
+        dial_mode_order: ["scroll", "workspaces", "agents"],
+        bindings: { ACT10: "zoom" },
+      }),
+    );
     const config = loadConfig();
     expect(config.policy).toBe("mirror");
+    expect(config.scrollSteps).toBe(3);
+    expect(config.dialModeOrder).toEqual(["scroll", "workspaces", "agents"]);
     expect(config.bindings.buttons.ACT10).toEqual({
       kind: "preset",
       preset: "zoom",
@@ -61,6 +72,36 @@ describe("loadConfig", () => {
   it("rejects an unknown policy rather than coercing it", () => {
     write(JSON.stringify({ policy: "banana" }));
     expect(() => loadConfig()).toThrow(/policy: expected "sticky" or "mirror"/);
+  });
+
+  it("accepts the scroll step boundaries", () => {
+    for (const value of [1, 12]) {
+      write(JSON.stringify({ scroll_steps: value }));
+      expect(loadConfig().scrollSteps).toBe(value);
+    }
+  });
+
+  it("rejects an invalid scroll step count", () => {
+    for (const value of [0, 13, 1.5, "3"]) {
+      write(JSON.stringify({ scroll_steps: value }));
+      expect(() => loadConfig()).toThrow(
+        /scroll_steps: expected an integer from 1 to 12/,
+      );
+    }
+  });
+
+  it("rejects an invalid dial mode order", () => {
+    for (const value of [
+      "scroll-first",
+      ["scroll", "workspaces"],
+      ["scroll", "scroll", "agents"],
+      ["scroll", "workspaces", "volume"],
+    ]) {
+      write(JSON.stringify({ dial_mode_order: value }));
+      expect(() => loadConfig()).toThrow(
+        /dial_mode_order: expected each of workspaces, agents, scroll exactly once/,
+      );
+    }
   });
 });
 

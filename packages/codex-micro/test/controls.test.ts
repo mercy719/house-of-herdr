@@ -5,35 +5,52 @@ const { posted } = vi.hoisted(() => ({ posted: [] as string[] }));
 vi.mock("../src/tapkey.js", () => ({
   postKey: (combo: { keyCode: number; modifiers: number }, mode: string) =>
     posted.push(`${combo.keyCode}:${combo.modifiers} ${mode}`),
+  postScroll: vi.fn(),
+  postSystemScroll: vi.fn(),
 }));
 
 const { Controls } = await import("../src/controls.js");
 const { defaultBindings, resolveBindings } = await import("../src/bindings.js");
 type Bindings = ReturnType<typeof defaultBindings>;
 type HerdrStub = { request: ReturnType<typeof vi.fn> };
+type DialMode = "workspaces" | "agents" | "scroll";
 
-function setup(initial: Bindings = defaultBindings()) {
+function setup(
+  initial: Bindings = defaultBindings(),
+  initialOrder: DialMode[] = ["workspaces", "agents", "scroll"],
+) {
   let bindings = initial;
+  let dialModeOrder = initialOrder;
   const herdr: HerdrStub = { request: vi.fn(async () => ({})) };
   const deps = {
     bindings: () => bindings,
+    scrollSteps: () => 1,
+    dialModeOrder: () => dialModeOrder,
     slotPaneId: (slot: number) => `pane-${slot}`,
     togglePopup: vi.fn(),
     togglePolicy: vi.fn(),
     onDialModeChange: vi.fn(),
   };
+  const scroller = { scroll: vi.fn(), stop: vi.fn() };
   const logs: string[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const controls = new Controls(herdr as any, deps, (message) =>
-    logs.push(message),
+  const controls = new Controls(
+    herdr as any,
+    deps,
+    (message) => logs.push(message),
+    scroller,
   );
   return {
     controls,
     herdr,
     deps,
+    scroller,
     logs,
     reload: (next: Bindings) => {
       bindings = next;
+    },
+    reorder: (next: DialMode[]) => {
+      dialModeOrder = next;
     },
   };
 }
@@ -123,6 +140,87 @@ describe("tap bindings", () => {
     controls.onHid("ENC_CW", 2);
     controls.onHid("ENC_CW", 2);
     expect(posted).toEqual(["105:0 tap", "105:0 tap"]);
+  });
+});
+
+describe("dial modes", () => {
+  it("uses the original workspace-agent-scroll order by default", () => {
+    const { controls, deps } = setup();
+
+    controls.onHid("ENC_CLK", 1);
+    controls.onHid("ENC_CLK", 0);
+    controls.onHid("ENC_CLK", 1);
+    controls.onHid("ENC_CLK", 0);
+    controls.onHid("ENC_CLK", 1);
+
+    expect(deps.onDialModeChange.mock.calls.map(([mode]) => mode)).toEqual([
+      "agents",
+      "scroll",
+      "workspaces",
+    ]);
+    expect(controls.dialMode).toBe("workspaces");
+  });
+
+  it("starts with and cycles through the configured order", () => {
+    const { controls, deps } = setup(defaultBindings(), [
+      "scroll",
+      "workspaces",
+      "agents",
+    ]);
+
+    expect(controls.dialMode).toBe("scroll");
+    controls.onHid("ENC_CLK", 1);
+    controls.onHid("ENC_CLK", 0);
+    controls.onHid("ENC_CLK", 1);
+    controls.onHid("ENC_CLK", 0);
+    controls.onHid("ENC_CLK", 1);
+
+    expect(deps.onDialModeChange.mock.calls.map(([mode]) => mode)).toEqual([
+      "workspaces",
+      "agents",
+      "scroll",
+    ]);
+    expect(controls.dialMode).toBe("scroll");
+  });
+
+  it("applies a reloaded order without changing the current mode", () => {
+    const { controls, deps, reorder } = setup();
+    reorder(["scroll", "agents", "workspaces"]);
+
+    expect(controls.dialMode).toBe("workspaces");
+    controls.onHid("ENC_CLK", 1);
+
+    expect(deps.onDialModeChange).toHaveBeenCalledWith("scroll");
+  });
+
+  it("uses focus-aware scrolling without rate limiting in scroll mode", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1000);
+    try {
+      const { controls, scroller } = setup(defaultBindings(), [
+        "scroll",
+        "workspaces",
+        "agents",
+      ]);
+
+      controls.onHid("ENC_CW", 2);
+      controls.onHid("ENC_CW", 2);
+      controls.onHid("ENC_CC", 2);
+
+      expect(scroller.scroll.mock.calls).toEqual([["up"], ["up"], ["down"]]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("releases the harness scroll controller when leaving scroll mode", () => {
+    const { controls, scroller } = setup(defaultBindings(), [
+      "scroll",
+      "workspaces",
+      "agents",
+    ]);
+    controls.onHid("ENC_CLK", 1); // scroll -> workspaces
+    expect(scroller.stop).toHaveBeenCalledTimes(1);
   });
 });
 

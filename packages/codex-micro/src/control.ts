@@ -6,6 +6,7 @@ import net from "node:net";
 import { CONTROL_SOCKET } from "./config.js";
 import { connect, readLines, requestLine } from "./socket.js";
 import type { DeviceState } from "./device.js";
+import type { DialMode } from "./dial.js";
 import type { AgentStatus, Policy } from "./slots.js";
 
 const WATCH_RECONNECT_MS = 1000;
@@ -26,7 +27,9 @@ export interface SlotStatus {
 
 export interface StatusPayload {
   policy: Policy;
-  dialMode: "workspaces" | "agents";
+  scrollSteps: number;
+  dialMode: DialMode;
+  dialModeOrder: DialMode[];
   state: ControlState;
   herdrConnected: boolean;
   configError: string | null;

@@ -40,8 +40,8 @@ macOS requires manual grants in **System Settings → Privacy & Security**:
 
 - **Input Monitoring**, required: grant it to the app you run Herdr in
   (Ghostty, kitty, iTerm, ...).
-- **Accessibility**, only for global `{"key": ...}` bindings; the defaults
-  use none. Herdr-side bindings never need it.
+- **Accessibility**, for global `{"key": ...}` bindings and dial scrolling.
+  Herdr-side bindings do not need it.
 
 Verify everything with `node dist/doctor.js` from the plugin directory; it
 names exactly what is missing. If the daemon logs `privilege violation`
@@ -50,22 +50,35 @@ after an automatic start, launch it once from your terminal
 
 ## Controls (defaults)
 
-| Control        | Action                                                                        |
-| -------------- | ----------------------------------------------------------------------------- |
-| Agent Keys 1-6 | Focus the assigned Herdr agent (marks done agents seen)                       |
-| Joystick       | Move pane focus; circle the stick to keep moving                              |
-| Dial rotate    | Cycle workspaces, or agents in agent mode                                     |
-| Dial click     | Switch the dial between workspaces and agents (ring glows blue in agent mode) |
-| ACT06          | Toggle the key-map popup                                                      |
-| ACT07          | Send Escape to Herdr's focused pane (interrupt the agent)                     |
-| ACT08 / ACT09  | Previous / next tab                                                           |
-| ACT10          | Unbound; bind your dictation hotkey                                           |
-| ACT12          | Send Enter to Herdr's focused pane (submit), not globally                     |
+| Control        | Action                                                    |
+| -------------- | --------------------------------------------------------- |
+| Agent Keys 1-6 | Focus the assigned Herdr agent (marks done agents seen)   |
+| Joystick       | Move pane focus; circle the stick to keep moving          |
+| Dial rotate    | Cycle workspaces or agents; scroll in scroll mode         |
+| Dial click     | Cycle through the configured dial modes                   |
+| ACT06          | Toggle the key-map popup                                  |
+| ACT07          | Send Escape to Herdr's focused pane (interrupt the agent) |
+| ACT08 / ACT09  | Previous / next tab                                       |
+| ACT10          | Unbound; bind your dictation hotkey                       |
+| ACT12          | Send Enter to Herdr's focused pane (submit), not globally |
 
 Every control except the six Agent Keys is remappable through the config:
 ask your agent to read [CONFIGURING.md](CONFIGURING.md) to customize keys or
 create a configuration for any mapping you want. Config edits apply
 instantly, no restart.
+
+The default order is workspaces, agents, then scroll; set `dial_mode_order` to
+change both the startup mode and click order. The ring is off in workspace
+mode, blue in agent mode, and purple in scroll mode. In scroll mode, turn
+counter-clockwise to scroll up and clockwise to scroll down. When
+Ghostty/Herdr is frontmost it targets Herdr's keyboard-focused pane regardless
+of its initial pointer position; Ghostty requires moving the pointer to that
+pane before it will route the wheel gesture there. In other apps it scrolls
+beneath the pointer like a normal wheel. Set `scroll_steps` from 1 to 12 in the
+plugin config to tune how much each detent moves; changes apply live. See
+[CONFIGURING.md](CONFIGURING.md) for details. With scroll work still buffered,
+the first reverse detent acts as a brake: it cancels the old direction and
+briefly ignores new ticks before scrolling back.
 
 Bindings come in two flavors. **Herdr-side** bindings (the presets plus
 `herdr-key` / `herdr-text`) go through Herdr's API to the focused pane and

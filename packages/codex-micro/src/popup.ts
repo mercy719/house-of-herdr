@@ -106,8 +106,12 @@ function render(): void {
     const herdr = status.herdrConnected
       ? ""
       : `    ${fg(0xff5555)}herdr disconnected${RESET}`;
+    const dial =
+      status.dialMode === "scroll"
+        ? `${status.dialMode} (${status.scrollSteps}×)`
+        : status.dialMode;
     out.push(
-      `  ${BOLD}Codex Micro${RESET}    policy: ${BOLD}${status.policy.toUpperCase()}${RESET}    dial: ${BOLD}${status.dialMode}${RESET}    device: ${device}${daemon}${herdr}`,
+      `  ${BOLD}Codex Micro${RESET}    policy: ${BOLD}${status.policy.toUpperCase()}${RESET}    dial: ${BOLD}${dial}${RESET}    device: ${device}${daemon}${herdr}`,
     );
     if (status.configError) {
       // Clipped: a validation message is unbounded and would wrap the grid.

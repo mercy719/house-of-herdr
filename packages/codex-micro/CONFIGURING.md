@@ -32,6 +32,8 @@ overwrite it. Fix the reported error and the write succeeds.
 ```json
 {
   "policy": "sticky",
+  "scroll_steps": 1,
+  "dial_mode_order": ["workspaces", "agents", "scroll"],
   "bindings": {
     "<input>": <binding>
   }
@@ -51,6 +53,13 @@ where `<binding>` is one of:
 
 - `policy`: `"sticky"` (agents keep their key; default) or `"mirror"` (keys
   always match Herdr's attention priority order).
+- `scroll_steps`: wheel steps sent per dial detent, an integer from 1 to 12
+  (default 1). Higher values cover more transcript per click. Config reloads
+  live, so this is safe to tune while testing.
+- `dial_mode_order`: the dial modes in click order. Each of `"workspaces"`,
+  `"agents"`, and `"scroll"` must appear exactly once. The first entry is the
+  startup mode; the default is `["workspaces", "agents", "scroll"]`. Reloading
+  a new order preserves the current mode and changes the next click.
 - `bindings`: optional. Omitted inputs keep their defaults. `"none"` disables
   an input.
 
@@ -78,22 +87,34 @@ directions keep pane navigation.
 
 1. **Preset** (string): a built-in Herdr behavior.
 
-   | Preset                                 | Effect                                                       |
-   | -------------------------------------- | ------------------------------------------------------------ |
-   | `popup`                                | toggle the key-map popup                                     |
-   | `tab-next` / `tab-prev`                | cycle tabs in the focused workspace                          |
-   | `tab-new`                              | create a tab in the focused workspace                        |
-   | `workspace-next` / `workspace-prev`    | cycle workspaces                                             |
-   | `zoom`                                 | toggle zoom on the focused pane                              |
-   | `pane-split-right` / `pane-split-down` | split the focused pane                                       |
-   | `agent-next` / `agent-prev`            | cycle agents in priority order                               |
-   | `toggle-policy`                        | flip sticky/mirror                                           |
-   | `dial-next` / `dial-prev`              | mode-dependent cycling (see `dial-mode`)                     |
-   | `dial-mode`                            | switch the dial between workspaces and agents; shows a toast |
+   | Preset                                 | Effect                                                      |
+   | -------------------------------------- | ----------------------------------------------------------- |
+   | `popup`                                | toggle the key-map popup                                    |
+   | `tab-next` / `tab-prev`                | cycle tabs in the focused workspace                         |
+   | `tab-new`                              | create a tab in the focused workspace                       |
+   | `workspace-next` / `workspace-prev`    | cycle workspaces                                            |
+   | `zoom`                                 | toggle zoom on the focused pane                             |
+   | `pane-split-right` / `pane-split-down` | split the focused pane                                      |
+   | `agent-next` / `agent-prev`            | cycle agents in priority order                              |
+   | `toggle-policy`                        | flip sticky/mirror                                          |
+   | `dial-next` / `dial-prev`              | mode-dependent cycling or wheel scrolling (see `dial-mode`) |
+   | `dial-mode`                            | cycle through `dial_mode_order`; shows a toast              |
 
-   In agent mode the device's ambient ring glows blue; in workspace mode it
-   is off. If no binding maps to `dial-mode`, the mode collapses back to
-   workspaces (the ring cannot get stuck). The `dial-mode` toast additionally
+   The dial starts with the first entry in `dial_mode_order` (workspace mode
+   by default). Its ambient ring is off in workspace mode, blue in agent mode,
+   and purple in scroll mode. When Ghostty/Herdr is frontmost,
+   scroll mode targets Herdr's keyboard-focused pane regardless of pointer
+   position, moving the pointer there first because Ghostty routes wheel input
+   using its last cursor position. In other apps it scrolls beneath the pointer
+   like a normal macOS wheel. Scrolling Herdr panes relies on Herdr's mouse
+   capture (`[ui] mouse_capture`, on by default); with it disabled, wheel
+   events cannot reach Herdr's panes. It uses `scroll_steps` wheel steps per dial detent
+   (counter-clockwise up, clockwise down) and requires Accessibility. When the
+   direction is reversed while scroll work is still buffered, the first reverse
+   detent acts as a brake: it cancels the previous direction and ignores new
+   ticks for 120 ms before allowing the new direction. If no binding maps to
+   `dial-mode`, the mode collapses back to workspaces (the ring cannot get
+   stuck). The `dial-mode` toast additionally
    requires toast delivery enabled in Herdr, which is off by default: set
    `[ui.toast] delivery = "herdr"` in the Herdr config. The current mode is
    always visible in the popup header regardless.

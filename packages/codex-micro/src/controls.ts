@@ -13,8 +13,10 @@ import type {
   Preset,
 } from "./bindings.js";
 import type { KeyCombo } from "./keys.js";
+import { HerdrScroller, type ScrollController } from "./scroll.js";
 import { comparePriority } from "./slots.js";
 import type { AgentInfo, HerdrClient } from "./herdr.js";
+import type { DialMode } from "./dial.js";
 
 const DIAL_PRESET_MIN_INTERVAL_MS = 120;
 // Sweep model: the first sector entered past ENGAGE fires, and every sector
@@ -27,7 +29,7 @@ const RELEASE_DISTANCE = 0.3;
 // 0.75. No dead wedges: every deflection resolves to the nearest direction.
 const SECTOR_DIRECTIONS: JoystickDirection[] = ["right", "down", "left", "up"];
 
-export type DialMode = "workspaces" | "agents";
+export type { DialMode } from "./dial.js";
 
 const comboId = (combo: KeyCombo) => `${combo.keyCode}:${combo.modifiers}`;
 
@@ -39,6 +41,8 @@ function cycle<T>(items: T[], current: number, step: 1 | -1): T | undefined {
 
 export interface ControlDeps {
   bindings(): Bindings;
+  scrollSteps(): number;
+  dialModeOrder(): readonly DialMode[];
   slotPaneId(slot: number): string | null;
   togglePopup(): void;
   togglePolicy(): void;
@@ -56,13 +60,20 @@ export class Controls {
   // Refcount per combo, so two inputs holding the same key post one down on
   // the first and one up on the last, rather than releasing on the first.
   private holds = new Map<string, { combo: KeyCombo; count: number }>();
-  dialMode: DialMode = "workspaces";
+  dialMode: DialMode;
 
   constructor(
     private herdr: HerdrClient,
     private deps: ControlDeps,
     private log: (message: string) => void,
-  ) {}
+    private scroller: ScrollController = new HerdrScroller(
+      herdr,
+      log,
+      deps.scrollSteps,
+    ),
+  ) {
+    this.dialMode = deps.dialModeOrder()[0]!;
+  }
 
   // The HID callbacks run straight off the device stream, so a synchronous
   // throw here would take the daemon down with it.
@@ -90,6 +101,12 @@ export class Controls {
     this.holds.clear();
     this.heldByInput.clear();
     this.lastSector = null;
+    this.scroller.stop();
+  }
+
+  resetDialMode(mode: DialMode = this.deps.dialModeOrder()[0]!): void {
+    this.scroller.stop();
+    this.dialMode = mode;
   }
 
   private dispatchHid(key: string, act: number): void {
@@ -195,6 +212,16 @@ export class Controls {
   // dozen navigation calls; raw key/exec bindings fire per tick.
   private dispatchDialTick(binding: Binding): void {
     if (binding.kind === "preset") {
+      // A wheel should report every detent just like physical mouse hardware.
+      // Navigation presets stay rate-limited because their Herdr requests can
+      // otherwise build a long asynchronous queue during a fast spin.
+      if (
+        this.dialMode === "scroll" &&
+        (binding.preset === "dial-next" || binding.preset === "dial-prev")
+      ) {
+        this.runPreset(binding.preset);
+        return;
+      }
       const now = Date.now();
       if (now - this.lastDialPresetAt < DIAL_PRESET_MIN_INTERVAL_MS) return;
       this.lastDialPresetAt = now;
@@ -244,15 +271,21 @@ export class Controls {
         break;
       case "dial-next":
         if (this.dialMode === "workspaces") void this.stepWorkspace(1);
-        else void this.stepAgent(1);
+        else if (this.dialMode === "agents") void this.stepAgent(1);
+        // The device's reported encoder direction is opposite its physical
+        // rotation: dial-next is the clockwise/down scroll edge.
+        else void this.scroller.scroll("down");
         break;
       case "dial-prev":
         if (this.dialMode === "workspaces") void this.stepWorkspace(-1);
-        else void this.stepAgent(-1);
+        else if (this.dialMode === "agents") void this.stepAgent(-1);
+        // dial-prev is the counter-clockwise/up scroll edge.
+        else void this.scroller.scroll("up");
         break;
       case "dial-mode":
-        this.dialMode =
-          this.dialMode === "workspaces" ? "agents" : "workspaces";
+        if (this.dialMode === "scroll") this.scroller.stop();
+        const order = this.deps.dialModeOrder();
+        this.dialMode = cycle([...order], order.indexOf(this.dialMode), 1)!;
         this.deps.onDialModeChange(this.dialMode);
         break;
       default: {

@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { resolveBindings, type Bindings } from "./bindings.js";
+import { DEFAULT_DIAL_MODE_ORDER, DIAL_MODES, type DialMode } from "./dial.js";
 import type { Policy } from "./slots.js";
 
 export const PLUGIN_ID = "alasano.codex-micro";
@@ -28,6 +29,8 @@ export const LOG_FILE = path.join(stateDir, "daemon.log");
 
 export interface Config {
   policy: Policy;
+  scrollSteps: number;
+  dialModeOrder: DialMode[];
   bindings: Bindings;
 }
 
@@ -39,6 +42,8 @@ export function loadConfig(): Config {
   const raw = readRawConfig();
   return {
     policy: resolvePolicy(raw.policy),
+    scrollSteps: resolveScrollSteps(raw.scroll_steps),
+    dialModeOrder: resolveDialModeOrder(raw.dial_mode_order),
     bindings: resolveBindings(raw.bindings),
   };
 }
@@ -70,6 +75,36 @@ function resolvePolicy(value: unknown): Policy {
   throw new Error(
     `policy: expected "sticky" or "mirror", got ${JSON.stringify(value)}`,
   );
+}
+
+function resolveScrollSteps(value: unknown): number {
+  if (value === undefined) return 1;
+  if (
+    Number.isInteger(value) &&
+    (value as number) >= 1 &&
+    (value as number) <= 12
+  ) {
+    return value as number;
+  }
+  throw new Error(
+    `scroll_steps: expected an integer from 1 to 12, got ${JSON.stringify(value)}`,
+  );
+}
+
+function resolveDialModeOrder(value: unknown): DialMode[] {
+  if (value === undefined) return [...DEFAULT_DIAL_MODE_ORDER];
+  const validModes = DIAL_MODES as readonly unknown[];
+  if (
+    !Array.isArray(value) ||
+    value.length !== DIAL_MODES.length ||
+    !value.every((mode) => validModes.includes(mode)) ||
+    new Set(value).size !== DIAL_MODES.length
+  ) {
+    throw new Error(
+      `dial_mode_order: expected each of ${DIAL_MODES.join(", ")} exactly once, got ${JSON.stringify(value)}`,
+    );
+  }
+  return value as DialMode[];
 }
 
 function readRawConfig(): Record<string, unknown> {
