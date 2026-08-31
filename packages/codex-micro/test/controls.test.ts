@@ -18,20 +18,24 @@ type DialMode = "workspaces" | "agents" | "scroll";
 function setup(
   initial: Bindings = defaultBindings(),
   initialOrder: DialMode[] = ["workspaces", "agents", "scroll"],
+  initialRaise = true,
 ) {
   let bindings = initial;
   let dialModeOrder = initialOrder;
+  let raiseEnabled = initialRaise;
   const herdr: HerdrStub = { request: vi.fn(async () => ({})) };
   const deps = {
     bindings: () => bindings,
     scrollSteps: () => 1,
     dialModeOrder: () => dialModeOrder,
+    raiseTerminalOnAgentKey: () => raiseEnabled,
     slotPaneId: (slot: number) => `pane-${slot}`,
     togglePopup: vi.fn(),
     togglePolicy: vi.fn(),
     onDialModeChange: vi.fn(),
   };
   const scroller = { scroll: vi.fn(), stop: vi.fn() };
+  const raise = vi.fn();
   const logs: string[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controls = new Controls(
@@ -39,13 +43,18 @@ function setup(
     deps,
     (message) => logs.push(message),
     scroller,
+    raise,
   );
   return {
     controls,
     herdr,
     deps,
     scroller,
+    raise,
     logs,
+    setRaiseEnabled: (next: boolean) => {
+      raiseEnabled = next;
+    },
     reload: (next: Bindings) => {
       bindings = next;
     },
@@ -233,6 +242,38 @@ describe("agent keys", () => {
     expect(herdr.request).toHaveBeenCalledWith("agent.focus", {
       target: "pane-2",
     });
+  });
+
+  it("raises the terminal so the focused agent is actually on screen", () => {
+    const { controls, raise } = setup();
+    controls.onHid("AG02", 1);
+    expect(raise).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the terminal alone when raising is turned off", () => {
+    const { controls, herdr, raise, setRaiseEnabled } = setup();
+    setRaiseEnabled(false);
+    controls.onHid("AG02", 1);
+    expect(raise).not.toHaveBeenCalled();
+    // The focus change itself must still happen.
+    expect(herdr.request).toHaveBeenCalledWith("agent.focus", {
+      target: "pane-2",
+    });
+  });
+
+  it("does not raise for an empty slot", () => {
+    const { controls, raise } = setup();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (controls as any).deps.slotPaneId = () => null;
+    controls.onHid("AG02", 1);
+    expect(raise).not.toHaveBeenCalled();
+  });
+
+  it("does not raise for the dial or command keys, which drive Herdr from other apps", () => {
+    const { controls, raise } = setup();
+    controls.onHid("ENC_CW", 2);
+    controls.onHid("ACT08", 1);
+    expect(raise).not.toHaveBeenCalled();
   });
 });
 

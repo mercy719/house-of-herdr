@@ -34,6 +34,7 @@ overwrite it. Fix the reported error and the write succeeds.
   "policy": "sticky",
   "scroll_steps": 1,
   "dial_mode_order": ["workspaces", "agents", "scroll"],
+  "raise_terminal_on_agent_key": true,
   "bindings": {
     "<input>": <binding>
   }
@@ -60,6 +61,12 @@ where `<binding>` is one of:
   `"agents"`, and `"scroll"` must appear exactly once. The first entry is the
   startup mode; the default is `["workspaces", "agents", "scroll"]`. Reloading
   a new order preserves the current mode and changes the next click.
+- `raise_terminal_on_agent_key`: whether pressing an Agent Key also brings
+  the terminal forward, so the agent you focused is on screen (default
+  `true`). Set it to `false` to keep the old behavior, where the key moves
+  Herdr's focus without touching your window. Only the Agent Keys do this;
+  the dial and command keys never raise the terminal, so they stay usable
+  from whatever app you are in.
 - `bindings`: optional. Omitted inputs keep their defaults. `"none"` disables
   an input.
 

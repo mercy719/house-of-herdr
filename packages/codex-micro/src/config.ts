@@ -32,6 +32,7 @@ export interface Config {
   scrollSteps: number;
   dialModeOrder: DialMode[];
   bindings: Bindings;
+  raiseTerminalOnAgentKey: boolean;
 }
 
 // Throws with an entry-naming message on any invalid config - unparseable
@@ -45,6 +46,11 @@ export function loadConfig(): Config {
     scrollSteps: resolveScrollSteps(raw.scroll_steps),
     dialModeOrder: resolveDialModeOrder(raw.dial_mode_order),
     bindings: resolveBindings(raw.bindings),
+    raiseTerminalOnAgentKey: resolveBoolean(
+      raw.raise_terminal_on_agent_key,
+      "raise_terminal_on_agent_key",
+      true,
+    ),
   };
 }
 
@@ -74,6 +80,18 @@ function resolvePolicy(value: unknown): Policy {
   if (value === "sticky" || value === "mirror") return value;
   throw new Error(
     `policy: expected "sticky" or "mirror", got ${JSON.stringify(value)}`,
+  );
+}
+
+function resolveBoolean(
+  value: unknown,
+  name: string,
+  fallback: boolean,
+): boolean {
+  if (value === undefined) return fallback;
+  if (typeof value === "boolean") return value;
+  throw new Error(
+    `${name}: expected true or false, got ${JSON.stringify(value)}`,
   );
 }
 

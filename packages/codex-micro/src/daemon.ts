@@ -77,6 +77,7 @@ class Daemon {
   private herdr = new HerdrClient();
   private policy: Policy = "sticky";
   private scrollSteps = 1;
+  private raiseTerminalOnAgentKey = true;
   private dialModeOrder: DialMode[] = [...DEFAULT_DIAL_MODE_ORDER];
   private bindings: Bindings = defaultBindings();
   private configError: string | null = null;
@@ -130,6 +131,7 @@ class Daemon {
       bindings: () => this.bindings,
       scrollSteps: () => this.scrollSteps,
       dialModeOrder: () => this.dialModeOrder,
+      raiseTerminalOnAgentKey: () => this.raiseTerminalOnAgentKey,
       slotPaneId: (slot) => this.agentForSlot(slot)?.pane_id ?? null,
       togglePopup: () => void this.togglePopup(),
       togglePolicy: () => this.togglePolicy(),
@@ -183,6 +185,7 @@ class Daemon {
       this.policy = config.policy;
       this.scrollSteps = config.scrollSteps;
       this.dialModeOrder = config.dialModeOrder;
+      this.raiseTerminalOnAgentKey = config.raiseTerminalOnAgentKey;
       this.bindings = config.bindings;
       this.configError = null;
       if (initial) this.controls.resetDialMode();

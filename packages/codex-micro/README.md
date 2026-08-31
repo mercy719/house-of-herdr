@@ -52,7 +52,7 @@ after an automatic start, launch it once from your terminal
 
 | Control        | Action                                                    |
 | -------------- | --------------------------------------------------------- |
-| Agent Keys 1-6 | Focus the assigned Herdr agent (marks done agents seen)   |
+| Agent Keys 1-6 | Focus the assigned Herdr agent and raise the terminal     |
 | Joystick       | Move pane focus; circle the stick to keep moving          |
 | Dial rotate    | Cycle workspaces or agents; scroll in scroll mode         |
 | Dial click     | Cycle through the configured dial modes                   |
@@ -173,6 +173,13 @@ The device controls Herdr whether Herdr's window is focused or not: the
 dial switches workspaces and the CODEX key submits in Herdr's focused pane
 even while you are in another app. Herdr-side Enter only ever lands inside
 Herdr, but it can submit a prompt in a pane you are not looking at.
+
+The Agent Keys are the deliberate exception. Their job is to take you to an
+agent, so they also bring the terminal forward; focusing a pane you cannot
+see is not much of an answer when you press one from another app. Marking a
+done agent seen still happens either way. Set
+`raise_terminal_on_agent_key` to `false` to keep them from touching your
+window.
 
 ## Verifying the key helper
 

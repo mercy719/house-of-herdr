@@ -14,6 +14,7 @@ import type {
 } from "./bindings.js";
 import type { KeyCombo } from "./keys.js";
 import { HerdrScroller, type ScrollController } from "./scroll.js";
+import { raiseTerminal } from "./terminal.js";
 import { comparePriority } from "./slots.js";
 import type { AgentInfo, HerdrClient } from "./herdr.js";
 import type { DialMode } from "./dial.js";
@@ -43,6 +44,7 @@ export interface ControlDeps {
   bindings(): Bindings;
   scrollSteps(): number;
   dialModeOrder(): readonly DialMode[];
+  raiseTerminalOnAgentKey(): boolean;
   slotPaneId(slot: number): string | null;
   togglePopup(): void;
   togglePolicy(): void;
@@ -71,6 +73,7 @@ export class Controls {
       log,
       deps.scrollSteps,
     ),
+    private raise: (log: (message: string) => void) => void = raiseTerminal,
   ) {
     this.dialMode = deps.dialModeOrder()[0]!;
   }
@@ -296,10 +299,17 @@ export class Controls {
     }
   }
 
+  // An Agent Key means "take me to that agent", so the terminal comes forward
+  // with the focus change. Herdr's own focus call only moves focus inside
+  // Herdr, which from another app lands somewhere the user cannot see.
+  // Deliberately limited to the Agent Keys: the dial and the CODEX key are
+  // built to drive Herdr from whatever app you are already in, and raising the
+  // terminal under those would defeat the point.
   private focusSlot(slot: number): void {
     const paneId = this.deps.slotPaneId(slot);
     if (!paneId) return;
     this.run("agent.focus", { target: paneId });
+    if (this.deps.raiseTerminalOnAgentKey()) this.raise(this.log);
   }
 
   private async stepWorkspace(step: 1 | -1): Promise<void> {

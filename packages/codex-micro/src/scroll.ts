@@ -2,6 +2,7 @@
 // pane. Outside the terminal, the native helper falls back to the pointer so
 // scroll mode keeps behaving like an ordinary system wheel.
 import type { HerdrClient, SessionSnapshot } from "./herdr.js";
+import { terminalWindowOwner } from "./terminal.js";
 import {
   postScroll,
   postSystemScroll,
@@ -26,21 +27,6 @@ interface PaneTarget {
 
 type PostHostScroll = typeof postScroll;
 type PostFallbackScroll = typeof postSystemScroll;
-
-const WINDOW_OWNERS: Record<string, string> = {
-  ghostty: "Ghostty",
-  "iterm.app": "iTerm2",
-  apple_terminal: "Terminal",
-  wezterm: "WezTerm",
-};
-
-function terminalWindowOwner(): string | null {
-  // kitty and Alacritty never set TERM_PROGRAM and pass an inherited value
-  // through untouched, so their own variables must win over a stale one.
-  if (process.env.KITTY_WINDOW_ID) return "kitty";
-  if (process.env.ALACRITTY_WINDOW_ID) return "Alacritty";
-  return WINDOW_OWNERS[(process.env.TERM_PROGRAM ?? "").toLowerCase()] ?? null;
-}
 
 function focusedTarget(snapshot: SessionSnapshot): PaneTarget | null {
   const paneId = snapshot.focused_pane_id;
