@@ -131,9 +131,15 @@ directions keep pane navigation.
    Presses tap by default. Add `"hold": true` to mirror your physical
    press and release instead (`{"key": "cmd+shift+v", "hold": true}`), for
    hold-to-talk style hotkeys; synthetic holds do not auto-repeat. Bare
-   modifier keys, standalone only, always mirror the hold: `lcmd`/`rcmd`,
-   `lopt`/`ropt` (`lalt`/`ralt`), `lctrl`/`rctrl`, `lshift`/`rshift`, for
-   apps that trigger on a bare modifier press, e.g. speech-to-text tools.
+   modifier keys, standalone only, always mirror the hold: `option` (`opt`,
+   `alt`), `cmd` (`command`), `ctrl` (`control`), `shift`, for apps that
+   trigger on a bare modifier press, e.g. speech-to-text tools. Those names
+   press the left key; use `lopt`/`ropt`, `lcmd`/`rcmd`, `lctrl`/`rctrl`,
+   `lshift`/`rshift` when the side matters.
+
+   A name means the modifier when something follows it and the key itself
+   when nothing does, so `opt+p` is still Option-P while `opt` alone presses
+   the Option key.
 
    **Holds need an input that reports a release.** Dial rotation (`ENC_CW`,
    `ENC_CC`) and joystick directions report entry only, so a hold bound
@@ -178,6 +184,43 @@ directions keep navigating panes:
   }
 }
 ```
+
+## The mic bar and dictation
+
+`ACT10` is the mic bar, and it ships unbound because the key that starts
+dictation belongs to whatever tool you dictate with. Bind it to that tool's
+hotkey and the bar becomes the voice button:
+
+```json
+{ "bindings": { "ACT10": { "key": "option" } } }
+```
+
+Find the hotkey in the tool's own settings and copy it over. What each one
+listens for varies, and it is usually configurable:
+
+| Trigger                       | Binding                                |
+| ----------------------------- | -------------------------------------- |
+| a bare modifier press         | `{"key": "option"}`, `{"key": "rcmd"}` |
+| an ordinary shortcut          | `{"key": "cmd+shift+v"}`               |
+| hold to talk, release to send | `{"key": "f13", "hold": true}`         |
+| its own URL scheme            | `{"exec": ["open", "app://record"]}`   |
+
+Press-once-to-start, press-again-to-stop tools want the plain form: a bare
+modifier binding already mirrors your press and release, which those read as
+one tap. Reach for `"hold": true` only when the tool records for exactly as
+long as the key is down.
+
+If a tool takes the modifier but not the side, `option` is the one to try
+first; `lopt` and `ropt` are there for the tools that do care.
+
+**A binding that does nothing at all is usually the Accessibility
+permission**, not the key name. Global `key` bindings synthesize real
+keystrokes, which macOS refuses without that grant, and the refusal is
+silent - the key simply has no effect. Run the `doctor` action to see
+whether it is granted. Note that it is granted per process tree: a daemon
+started automatically with your Herdr session can lack the permission that
+the same daemon has when you start it from your terminal with
+`node dist/start.js`, so check `doctor` before suspecting the binding.
 
 ## Opening the popup from the keyboard
 

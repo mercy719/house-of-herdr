@@ -21,6 +21,24 @@ describe("parseKeyCombo", () => {
     expect(() => parseKeyCombo("shift+rcmd")).toThrow(/must be used alone/);
   });
 
+  it("resolves a side-less bare modifier to the left key", () => {
+    for (const name of ["option", "opt", "alt"]) {
+      expect(parseKeyCombo(name)).toEqual({ keyCode: 58, modifiers: 0 });
+    }
+    expect(parseKeyCombo("cmd")).toEqual({ keyCode: 55, modifiers: 0 });
+    expect(parseKeyCombo("command")).toEqual({ keyCode: 55, modifiers: 0 });
+    expect(parseKeyCombo("shift")).toEqual({ keyCode: 56, modifiers: 0 });
+    expect(parseKeyCombo("ctrl")).toEqual({ keyCode: 59, modifiers: 0 });
+    expect(parseKeyCombo("control")).toEqual({ keyCode: 59, modifiers: 0 });
+  });
+
+  it("still reads a side-less name as a modifier when it prefixes a key", () => {
+    // Same token, two meanings, resolved by position: trailing is the key.
+    expect(parseKeyCombo("opt+p")).toEqual({ keyCode: 35, modifiers: 4 });
+    expect(parseKeyCombo("shift+cmd+a")).toEqual({ keyCode: 0, modifiers: 3 });
+    expect(() => parseKeyCombo("opt+option")).toThrow(/must be used alone/);
+  });
+
   it("names the unknown token in errors", () => {
     expect(() => parseKeyCombo("hyper+p")).toThrow(/unknown modifier "hyper"/);
     expect(() => parseKeyCombo("cmd+florb")).toThrow(/unknown key "florb"/);

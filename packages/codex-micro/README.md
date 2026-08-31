@@ -59,7 +59,7 @@ after an automatic start, launch it once from your terminal
 | ACT06          | Toggle the key-map popup                                  |
 | ACT07          | Send Escape to Herdr's focused pane (interrupt the agent) |
 | ACT08 / ACT09  | Previous / next tab                                       |
-| ACT10          | Unbound; bind your dictation hotkey                       |
+| ACT10          | Mic bar; unbound, bind your dictation hotkey              |
 | ACT12          | Send Enter to Herdr's focused pane (submit), not globally |
 
 Every control except the six Agent Keys is remappable through the config:
@@ -90,11 +90,15 @@ the default Herdr-side Enter to a global one that submits in any app:
 ```json
 {
   "bindings": {
-    "ACT10": { "key": "rcmd" },
+    "ACT10": { "key": "option" },
     "ACT12": { "key": "return" }
   }
 }
 ```
+
+Bare modifier names press the left key; `lopt`/`ropt` and friends pick a
+side. See [CONFIGURING.md](CONFIGURING.md) for wiring the mic bar to a
+dictation tool.
 
 The physical input names:
 

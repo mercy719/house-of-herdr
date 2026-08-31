@@ -1,7 +1,7 @@
-// Key-combo grammar for `key` bindings: "cmd+shift+p", "f13", "rcmd".
+// Key-combo grammar for `key` bindings: "cmd+shift+p", "f13", "option".
 // Names map to macOS virtual keycodes so config authors never see numbers.
-// Bare modifier keys (rcmd, lopt, ...) are standalone only: they use the
-// flagsChanged path in the tapkey helper that apps triggering on a bare
+// Bare modifier keys (option, rcmd, lopt, ...) are standalone only: they use
+// the flagsChanged path in the tapkey helper that apps triggering on a bare
 // modifier press listen for, and they always mirror the physical hold.
 
 export interface KeyCombo {
@@ -97,6 +97,21 @@ const KEY_CODES: Record<string, number> = {
   ropt: 61,
   ralt: 61,
   rctrl: 62,
+  // Side-less modifier names, resolving to the left key. Binding a bare
+  // modifier is how dictation hotkeys are wired, and "option" is what someone
+  // reaches for first; making them spell "lopt" to get it turns a working
+  // config into an unknown-key error. The l/r names above stay for the cases
+  // where the side matters. Position in the grammar keeps this unambiguous:
+  // the last segment is always the key, so "opt" is this bare key while the
+  // "opt" in "opt+p" is still the modifier.
+  cmd: 55,
+  command: 55,
+  shift: 56,
+  opt: 58,
+  option: 58,
+  alt: 58,
+  ctrl: 59,
+  control: 59,
   f5: 96,
   f6: 97,
   f7: 98,
