@@ -9,7 +9,8 @@ import { spawn } from "node:child_process";
 
 export interface HostTerminal {
   owner: string;
-  bundleId: string;
+  /** Absent for a configured name, which is matched by app name instead. */
+  bundleId?: string;
 }
 
 const BY_TERM_PROGRAM: Record<string, HostTerminal> = {
@@ -28,7 +29,17 @@ const ALACRITTY: HostTerminal = {
   bundleId: "org.alacritty",
 };
 
-export function hostTerminal(): HostTerminal | null {
+/**
+ * `configured` is the `terminal_app` setting, and it wins outright. The
+ * environment identifies the terminal that started the Herdr *server*, which
+ * is not always the one showing Herdr now: a client can attach from another
+ * terminal, and a fork can report its upstream's name (Otty reports
+ * `ghostty`), leaving nothing in the environment to tell them apart. Neither
+ * case is guessable, so the setting is the only honest answer for them.
+ */
+export function hostTerminal(configured?: string | null): HostTerminal | null {
+  const name = configured?.trim();
+  if (name) return { owner: name };
   // kitty and Alacritty never set TERM_PROGRAM and pass an inherited value
   // through untouched, so their own variables must win over a stale one.
   if (process.env.KITTY_WINDOW_ID) return KITTY;
@@ -38,8 +49,8 @@ export function hostTerminal(): HostTerminal | null {
   );
 }
 
-export function terminalWindowOwner(): string | null {
-  return hostTerminal()?.owner ?? null;
+export function terminalWindowOwner(configured?: string | null): string | null {
+  return hostTerminal(configured)?.owner ?? null;
 }
 
 /**
@@ -51,14 +62,18 @@ export function terminalWindowOwner(): string | null {
  * terminal that ships under a bundle id this table has wrong still comes
  * forward.
  */
-export function raiseTerminal(log: (message: string) => void): void {
-  const terminal = hostTerminal();
+export function raiseTerminal(
+  log: (message: string) => void,
+  configured?: string | null,
+): void {
+  const terminal = hostTerminal(configured);
   if (!terminal) return;
-  runOpen(["-b", terminal.bundleId], () =>
+  const byName = (): void =>
     runOpen(["-a", terminal.owner], () =>
       log(`could not raise ${terminal.owner}`),
-    ),
-  );
+    );
+  if (terminal.bundleId) runOpen(["-b", terminal.bundleId], byName);
+  else byName();
 }
 
 function runOpen(args: string[], onFailure: () => void): void {

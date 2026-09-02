@@ -78,6 +78,7 @@ class Daemon {
   private policy: Policy = "sticky";
   private scrollSteps = 1;
   private raiseTerminalOnAgentKey = true;
+  private terminalApp: string | null = null;
   private dialModeOrder: DialMode[] = [...DEFAULT_DIAL_MODE_ORDER];
   private bindings: Bindings = defaultBindings();
   private configError: string | null = null;
@@ -132,6 +133,7 @@ class Daemon {
       scrollSteps: () => this.scrollSteps,
       dialModeOrder: () => this.dialModeOrder,
       raiseTerminalOnAgentKey: () => this.raiseTerminalOnAgentKey,
+      terminalApp: () => this.terminalApp,
       slotPaneId: (slot) => this.agentForSlot(slot)?.pane_id ?? null,
       togglePopup: () => void this.togglePopup(),
       togglePolicy: () => this.togglePolicy(),
@@ -186,6 +188,7 @@ class Daemon {
       this.scrollSteps = config.scrollSteps;
       this.dialModeOrder = config.dialModeOrder;
       this.raiseTerminalOnAgentKey = config.raiseTerminalOnAgentKey;
+      this.terminalApp = config.terminalApp;
       this.bindings = config.bindings;
       this.configError = null;
       if (initial) this.controls.resetDialMode();

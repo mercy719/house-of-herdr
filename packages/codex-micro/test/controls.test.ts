@@ -23,12 +23,14 @@ function setup(
   let bindings = initial;
   let dialModeOrder = initialOrder;
   let raiseEnabled = initialRaise;
+  let terminalApp: string | null = null;
   const herdr: HerdrStub = { request: vi.fn(async () => ({})) };
   const deps = {
     bindings: () => bindings,
     scrollSteps: () => 1,
     dialModeOrder: () => dialModeOrder,
     raiseTerminalOnAgentKey: () => raiseEnabled,
+    terminalApp: () => terminalApp,
     slotPaneId: (slot: number) => `pane-${slot}`,
     togglePopup: vi.fn(),
     togglePolicy: vi.fn(),
@@ -54,6 +56,9 @@ function setup(
     logs,
     setRaiseEnabled: (next: boolean) => {
       raiseEnabled = next;
+    },
+    setTerminalApp: (next: string | null) => {
+      terminalApp = next;
     },
     reload: (next: Bindings) => {
       bindings = next;
@@ -248,6 +253,15 @@ describe("agent keys", () => {
     const { controls, raise } = setup();
     controls.onHid("AG02", 1);
     expect(raise).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes the configured terminal through to the raise", () => {
+    const { controls, raise, setTerminalApp } = setup();
+    controls.onHid("AG02", 1);
+    expect(raise).toHaveBeenLastCalledWith(expect.any(Function), null);
+    setTerminalApp("Otty");
+    controls.onHid("AG03", 1);
+    expect(raise).toHaveBeenLastCalledWith(expect.any(Function), "Otty");
   });
 
   it("leaves the terminal alone when raising is turned off", () => {

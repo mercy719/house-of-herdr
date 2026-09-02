@@ -45,6 +45,7 @@ export interface ControlDeps {
   scrollSteps(): number;
   dialModeOrder(): readonly DialMode[];
   raiseTerminalOnAgentKey(): boolean;
+  terminalApp(): string | null;
   slotPaneId(slot: number): string | null;
   togglePopup(): void;
   togglePolicy(): void;
@@ -72,8 +73,12 @@ export class Controls {
       herdr,
       log,
       deps.scrollSteps,
+      deps.terminalApp,
     ),
-    private raise: (log: (message: string) => void) => void = raiseTerminal,
+    private raise: (
+      log: (message: string) => void,
+      configured: string | null,
+    ) => void = raiseTerminal,
   ) {
     this.dialMode = deps.dialModeOrder()[0]!;
   }
@@ -309,7 +314,8 @@ export class Controls {
     const paneId = this.deps.slotPaneId(slot);
     if (!paneId) return;
     this.run("agent.focus", { target: paneId });
-    if (this.deps.raiseTerminalOnAgentKey()) this.raise(this.log);
+    if (this.deps.raiseTerminalOnAgentKey())
+      this.raise(this.log, this.deps.terminalApp());
   }
 
   private async stepWorkspace(step: 1 | -1): Promise<void> {
