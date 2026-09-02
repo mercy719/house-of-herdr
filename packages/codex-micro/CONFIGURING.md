@@ -35,6 +35,7 @@ overwrite it. Fix the reported error and the write succeeds.
   "scroll_steps": 1,
   "dial_mode_order": ["workspaces", "agents", "scroll"],
   "raise_terminal_on_agent_key": true,
+  "terminal_app": "Ghostty",
   "bindings": {
     "<input>": <binding>
   }
@@ -67,6 +68,14 @@ where `<binding>` is one of:
   Herdr's focus without touching your window. Only the Agent Keys do this;
   the dial and command keys never raise the terminal, so they stay usable
   from whatever app you are in.
+- `terminal_app`: the terminal to raise and to aim scrolling at, by
+  application name as it appears in `/Applications` (`"Otty"`, `"Ghostty"`).
+  Omitted, it is read from the environment, which is right for the common
+  case and wrong for two: Herdr's client can be attached from a different
+  terminal than the one that started the server, and a fork can report its
+  upstream's name (Otty reports `TERM_PROGRAM=ghostty`, so nothing in the
+  environment separates them). If Agent Keys raise the wrong terminal, or
+  raise nothing, set this.
 - `bindings`: optional. Omitted inputs keep their defaults. `"none"` disables
   an input.
 

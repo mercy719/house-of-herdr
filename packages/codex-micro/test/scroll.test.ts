@@ -71,6 +71,7 @@ describe("HerdrScroller", () => {
         herdr as any,
         log,
         () => 2,
+        () => null,
         postHostScroll,
         postFallbackScroll,
       );
@@ -100,6 +101,7 @@ describe("HerdrScroller", () => {
           herdr as any,
           vi.fn(),
           () => 1,
+          () => null,
           postHostScroll,
         );
 
@@ -127,6 +129,7 @@ describe("HerdrScroller", () => {
       herdr as any,
       log,
       () => 2,
+      () => null,
       vi.fn(completedOperation),
       postFallbackScroll,
     );
@@ -154,6 +157,7 @@ describe("HerdrScroller", () => {
           herdr as any,
           vi.fn(),
           () => steps,
+          () => null,
           postHostScroll,
           vi.fn(completedOperation),
         );
@@ -190,6 +194,7 @@ describe("HerdrScroller", () => {
       herdr as any,
       log,
       () => 2,
+      () => null,
       postHostScroll,
       postFallbackScroll,
     );
@@ -221,6 +226,7 @@ describe("HerdrScroller", () => {
           herdr as any,
           vi.fn(),
           () => 2,
+          () => null,
           postHostScroll,
           vi.fn(completedOperation),
           () => now,

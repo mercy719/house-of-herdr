@@ -33,6 +33,7 @@ export interface Config {
   dialModeOrder: DialMode[];
   bindings: Bindings;
   raiseTerminalOnAgentKey: boolean;
+  terminalApp: string | null;
 }
 
 // Throws with an entry-naming message on any invalid config - unparseable
@@ -51,6 +52,7 @@ export function loadConfig(): Config {
       "raise_terminal_on_agent_key",
       true,
     ),
+    terminalApp: resolveTerminalApp(raw.terminal_app),
   };
 }
 
@@ -80,6 +82,14 @@ function resolvePolicy(value: unknown): Policy {
   if (value === "sticky" || value === "mirror") return value;
   throw new Error(
     `policy: expected "sticky" or "mirror", got ${JSON.stringify(value)}`,
+  );
+}
+
+function resolveTerminalApp(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "string" && value.trim() !== "") return value.trim();
+  throw new Error(
+    `terminal_app: expected a non-empty app name, got ${JSON.stringify(value)}`,
   );
 }
 

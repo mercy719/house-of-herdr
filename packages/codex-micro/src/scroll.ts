@@ -68,6 +68,7 @@ export class HerdrScroller implements ScrollController {
     private herdr: HerdrClient,
     private log: (message: string) => void,
     private stepsPerTick: () => number = () => 1,
+    private terminalApp: () => string | null = () => null,
     private postHostScroll: PostHostScroll = postScroll,
     private postFallbackScroll: PostFallbackScroll = postSystemScroll,
     private now: () => number = () => performance.now(),
@@ -132,7 +133,7 @@ export class HerdrScroller implements ScrollController {
         this.log(`focus-aware scroll failed: ${(error as Error).message}`);
       }
       if (generation !== this.generation) return;
-      const owner = terminalWindowOwner();
+      const owner = terminalWindowOwner(this.terminalApp());
       const operation =
         target && owner
           ? this.postHostScroll(
